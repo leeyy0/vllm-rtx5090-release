@@ -1,215 +1,284 @@
-# vLLM Windows build for RTX 5090 / Blackwell
+# vLLM Windows Wheel for RTX 5090 / CUDA 13.2
 
-This repo provides a Windows wheel for `vllm-windows`, built and tested locally on an NVIDIA RTX 5090 / Blackwell GPU.
+This repository provides a prebuilt Windows wheel for `vllm` built for an NVIDIA RTX 5090 Laptop GPU on Windows.
 
-This is a community Windows build. It is not an official vLLM release.
+The goal is to make setup easier for Windows users who cannot directly use the standard upstream `vllm` Linux/CUDA wheels.
 
-## Tested environment
+## Build summary
 
-- OS: Windows x64
-- GPU: NVIDIA GeForce RTX 5090 / Blackwell
-- NVIDIA driver: 591.94
-- Driver-reported CUDA support: 13.1, shown by `nvidia-smi`
-- CUDA Toolkit used for build: 13.2, shown by `nvcc --version`
-- Python: 3.12
-- PyTorch: 2.11.0+cu130
-- vLLM: 0.20.1.dev7+g377ffb268.cu132
-- Compiler: Visual Studio 2026 Community, Desktop development with C++
+This wheel was built with:
 
-Note: `nvidia-smi` reports the CUDA version supported by the installed NVIDIA driver. It is not the same thing as the installed CUDA Toolkit version. This wheel was built using CUDA Toolkit 13.2.
+- Windows x64
+- Python 3.12
+- CUDA Toolkit 13.2
+- PyTorch 2.11.0+cu130
+- vLLM `0.20.1.dev7+g377ffb268`
+- NVIDIA RTX 5090 Laptop GPU
+- Compute capability `sm_120`
 
-## Files
-
-The main artifact is:
+Wheel filename:
 
 ```text
-wheels/vllm-0.20.1.dev7+g377ffb268.cu132-cp312-cp312-win_amd64.whl
-```
+vllm-0.20.1.dev7+g377ffb268.cu132-cp312-cp312-win_amd64.whl
+````
 
-This wheel is for:
+## Runtime requirements
 
-```text
-Python 3.12
-Windows x64
-CUDA/PyTorch cu130 runtime stack
-```
+You need:
 
-## Prerequisites
+* Windows x64
+* Python 3.12
+* NVIDIA GPU compatible with this build
+* NVIDIA driver new enough to support CUDA 13.2
+* `uv` or `pip`
 
-Install:
-
-1. NVIDIA driver new enough for RTX 5090 / Blackwell
-2. Python 3.12
-3. Visual C++ Redistributable, or Visual Studio Build Tools / Visual Studio Community
-4. `uv`, recommended
-
-Check GPU driver:
+Check your driver with:
 
 ```powershell
 nvidia-smi
 ```
 
-Check Python:
-
-```powershell
-python --version
-```
-
-Expected:
+Your output should show:
 
 ```text
-Python 3.12.x
+CUDA Version: 13.2
 ```
 
-## Install with uv
+or newer.
 
-Clone this repo:
+The CUDA Toolkit is **not required** to install and run this wheel. The CUDA Toolkit is only required if you want to rebuild the wheel from source.
 
-```powershell
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
-cd YOUR_REPO
-```
+## Important compatibility note
 
-Create the environment:
+This wheel was built using CUDA Toolkit 13.2.
 
-```powershell
-uv sync
-```
-
-Activate it:
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-Install the local vLLM wheel if it was not installed by `uv sync`:
-
-```powershell
-uv pip install .\wheels\vllm-0.20.1.dev7+g377ffb268.cu132-cp312-cp312-win_amd64.whl --extra-index-url https://download.pytorch.org/whl/cu130 --index-strategy unsafe-best-match
-```
-
-## Verify install
-
-Check PyTorch CUDA:
-
-```powershell
-python -c "import torch; print(torch.__version__); print(torch.version.cuda); print(torch.cuda.is_available())"
-```
-
-Expected output should look like:
+If your NVIDIA driver only supports CUDA 13.1 or older, vLLM may install successfully but fail at runtime with an error similar to:
 
 ```text
-2.11.0+cu130
-13.0
-True
+CUDA error: the provided PTX was compiled with an unsupported toolchain
 ```
 
-Check vLLM native extension:
+Fix: update your NVIDIA driver until `nvidia-smi` reports CUDA Version 13.2 or newer.
+
+## Quick install with uv
+
+Create a clean project folder:
 
 ```powershell
+mkdir C:\vllm-test
+cd C:\vllm-test
+uv init
+uv python pin 3.12
+```
+
+Install PyTorch CUDA 13.0 wheels and this vLLM wheel:
+
+```powershell
+uv add torch==2.11.0+cu130 torchaudio==2.11.0+cu130 torchvision==0.26.0+cu130 --index https://download.pytorch.org/whl/cu130
+```
+
+Then install the vLLM wheel from the GitHub release:
+
+```powershell
+uv pip install "https://github.com/leeyy0/vllm-rtx5090-release/releases/download/vllm-0.20.1.dev7-cu132-py312-win-amd64-rtx5090/vllm-0.20.1.dev7+g377ffb268.cu132-cp312-cp312-win_amd64.whl" --extra-index-url https://download.pytorch.org/whl/cu130 --index-strategy unsafe-best-match
+```
+
+## Quick install with pip
+
+Create and activate a virtual environment:
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\activate
+python -m pip install -U pip setuptools wheel
+```
+
+Install PyTorch:
+
+```powershell
+python -m pip install torch==2.11.0+cu130 torchaudio==2.11.0+cu130 torchvision==0.26.0+cu130 --index-url https://download.pytorch.org/whl/cu130
+```
+
+Install the vLLM wheel:
+
+```powershell
+python -m pip install "https://github.com/leeyy0/vllm-rtx5090-release/releases/download/vllm-0.20.1.dev7-cu132-py312-win-amd64-rtx5090/vllm-0.20.1.dev7+g377ffb268.cu132-cp312-cp312-win_amd64.whl" --extra-index-url https://download.pytorch.org/whl/cu130
+```
+
+## Basic validation (delete `uv run` if you had installed with pip)
+
+Run:
+
+```powershell
+python -c "import torch; print(torch.__version__); print(torch.version.cuda); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0))"
+python -c "import vllm; print(vllm.__version__); print(vllm.__file__)"
 python -c "import vllm._C; print('vllm._C OK')"
 ```
 
-Expected:
+Expected result:
 
 ```text
 vllm._C OK
 ```
 
-## Minimal inference test
+## Inference test
+
+Create `test_vllm.py`:
+
+```python
+from vllm import LLM, SamplingParams
+
+model = "Qwen/Qwen2.5-0.5B-Instruct"
+
+llm = LLM(
+    model=model,
+    dtype="float16",
+    max_model_len=2048,
+    gpu_memory_utilization=0.5,
+    disable_log_stats=True,
+)
+
+prompts = [
+    "Write one short sentence about why GPUs are useful for AI.",
+    "Give exactly three colors:",
+    "The capital of France is",
+]
+
+sampling_params = SamplingParams(
+    temperature=0.2,
+    top_p=0.95,
+    max_tokens=64,
+)
+
+outputs = llm.generate(prompts, sampling_params)
+
+for output in outputs:
+    print("=" * 80)
+    print("Prompt:", output.prompt)
+    print("Output:", repr(output.outputs[0].text))
+```
+
+Run:
 
 ```powershell
-python -c "from vllm import LLM; llm = LLM(model='Qwen/Qwen2.5-0.5B-Instruct', dtype='float16', gpu_memory_utilization=0.5); print(llm.generate(['hi'])[0].outputs[0].text)"
+uv run python .\test_vllm.py
 ```
 
-The first run may take time because the model needs to download.
+or, with a normal venv:
 
-## Known limitations
+```powershell
+python .\test_vllm.py
+```
 
-- This is a community Windows build.
-- This wheel is tested only on the environment listed above.
-- Other GPUs, drivers, Python versions, CUDA versions, or Torch versions may not work.
-- If `import vllm._C` fails, the native extension or DLL runtime is not loading correctly.
-- If `torch.cuda.is_available()` is `False`, PyTorch CUDA is not installed correctly.
+## Using this wheel in another uv project
 
-## Build notes
+In your application project, install the wheel directly:
 
-This wheel was built from source because prebuilt wheels did not load correctly on the RTX 5090 / Blackwell Windows setup.
+```powershell
+uv add "https://github.com/leeyy0/vllm-rtx5090-release/releases/download/vllm-0.20.1.dev7-cu132-py312-win-amd64-rtx5090/vllm-0.20.1.dev7+g377ffb268.cu132-cp312-cp312-win_amd64.whl"
+```
 
-The original failure was:
+You may also need to make sure PyTorch is installed from the CUDA 13.0 PyTorch index:
+
+```powershell
+uv add torch==2.11.0+cu130 torchaudio==2.11.0+cu130 torchvision==0.26.0+cu130 --index https://download.pytorch.org/whl/cu130
+```
+
+Then lock your app environment:
+
+```powershell
+uv lock --python 3.12 --index-strategy unsafe-best-match
+```
+
+Commit both:
 
 ```text
-ImportError: DLL load failed while importing _C
+pyproject.toml
+uv.lock
 ```
 
-Building locally aligned the vLLM native CUDA/C++ extension with:
+## Generate a lock file for this release repo
+
+From the root of this repository:
+
+```powershell
+uv lock --python 3.12 --index-strategy unsafe-best-match
+```
+
+This generates:
 
 ```text
-local Python 3.12
-local PyTorch cu130
-local CUDA Toolkit 13.2
-local MSVC compiler
-local RTX 5090 / Blackwell GPU
+uv.lock
 ```
+
+To test a frozen install:
+
+```powershell
+uv sync --frozen
+uv run python .\test_vllm.py
+```
+
+## Generate requirements-lock.txt
+
+After `uv sync --frozen`, export a pip-compatible lock file:
+
+```powershell
+uv pip freeze > requirements-lock.txt
+```
+
+This can be useful for users who prefer `pip`, but `uv.lock` is the preferred reproducible lock file for uv users.
+
+## Known warnings
+
+You may see warnings such as:
+
+```text
+NIXL is not available
+```
+
+or Hugging Face cache symlink warnings on Windows. These are not necessarily fatal.
+
+If you see:
+
+```text
+CUDA error: the provided PTX was compiled with an unsupported toolchain
+```
+
+update your NVIDIA driver until `nvidia-smi` reports CUDA Version 13.2 or newer.
 
 ## Rebuilding from source
 
-Enable Git long paths:
+Most users do not need to rebuild.
 
-```powershell
-git config --global core.longpaths true
-```
+If rebuilding, you need:
 
-Enable Windows long paths in Administrator PowerShell:
+* Visual Studio C++ build tools
+* CUDA Toolkit 13.2
+* CMake
+* Ninja
+* Python 3.12
+* PyTorch 2.11.0+cu130
 
-```powershell
-New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
-```
-
-Open a fresh PowerShell and verify:
-
-```powershell
-(Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem").LongPathsEnabled
-git config --global --get core.longpaths
-```
-
-Expected:
-
-```text
-1
-true
-```
-
-Load the Visual Studio compiler environment:
-
-```powershell
-cmd /c "`"C:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Build\vcvars64.bat`" && set" | ForEach-Object {
-    if ($_ -match "^(.*?)=(.*)$") {
-        Set-Item -Path "Env:$($matches[1])" -Value $matches[2]
-    }
-}
-```
-
-Set build variables:
-
-```powershell
-$env:DISTUTILS_USE_SDK = "1"
-$env:VLLM_TARGET_DEVICE = "cuda"
-$env:MAX_JOBS = "12"
-
-$env:CUDA_PATH = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.2"
-$env:CUDA_HOME = $env:CUDA_PATH
-$env:CUDA_ROOT = $env:CUDA_PATH
-$env:Path = "$env:CUDA_PATH\bin;$env:Path"
-```
-
-Verify tools:
+Before building, make sure the Visual Studio compiler environment is active and that `cl`, `nvcc`, `cmake`, and `ninja` are available:
 
 ```powershell
 where.exe cl
 where.exe nvcc
 where.exe cmake
 where.exe ninja
+```
+
+Required build environment variables:
+
+```powershell
+$env:DISTUTILS_USE_SDK = "1"
+$env:VLLM_TARGET_DEVICE = "cuda"
+$env:MAX_JOBS = "10"
+
+$env:CUDA_PATH = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.2"
+$env:CUDA_HOME = $env:CUDA_PATH
+$env:CUDA_ROOT = $env:CUDA_PATH
+$env:Path = "$env:CUDA_PATH\bin;$env:Path"
 ```
 
 Build wheel:
@@ -219,8 +288,12 @@ python -m pip install build
 python -m build --wheel --no-isolation
 ```
 
-The wheel will be created in:
+The wheel will be written to:
 
 ```text
 dist/
 ```
+
+## Disclaimer
+
+This is an unofficial community build. It is not an official vLLM release.
