@@ -110,9 +110,9 @@ python -m pip install "https://github.com/leeyy0/vllm-rtx5090-release/releases/d
 Run:
 
 ```powershell
-python -c "import torch; print(torch.__version__); print(torch.version.cuda); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0))"
-python -c "import vllm; print(vllm.__version__); print(vllm.__file__)"
-python -c "import vllm._C; print('vllm._C OK')"
+uv run python -c "import torch; print(torch.__version__); print(torch.version.cuda); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0))"
+uv run python -c "import vllm; print(vllm.__version__); print(vllm.__file__)"
+uv run python -c "import vllm._C; print('vllm._C OK')"
 ```
 
 Expected result:
